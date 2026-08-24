@@ -14,16 +14,7 @@
     <!-- Header -->
     <header class="app-header">
       <div class="brand">
-        <div class="logo-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m5 8 6 6"/>
-            <path d="m4 14 6-6 2 3"/>
-            <path d="M2 5h12"/>
-            <path d="M7 2h1"/>
-            <path d="m22 22-5-10-5 10"/>
-            <path d="M14 18h6"/>
-          </svg>
-        </div>
+        <img src="icons/icon48.png" width="34" height="34" alt="Singlish Logo" class="brand-logo-img">
         <div class="brand-text">
           <h1>Sinhala Translator</h1>
           <span class="version-tag">EN ➔ SI</span>
@@ -46,10 +37,20 @@
       </div>
     </header>
 
+    <!-- Mode Switcher Tabs -->
+    <div class="mode-switcher" role="tablist">
+      <button id="modeEn2Si" class="mode-tab active" role="tab" aria-selected="true" data-mode="en2si">
+        <span>English ➔ Sinhala</span>
+      </button>
+      <button id="modeSinglish" class="mode-tab" role="tab" aria-selected="false" data-mode="singlish">
+        <span>Singlish ➔ Sinhala & English</span>
+      </button>
+    </div>
+
     <!-- Source Input Card -->
     <div class="card source-card">
       <div class="card-header">
-        <span class="lang-label">
+        <span id="sourceLangLabel" class="lang-label">
           <span class="flag-icon">🇬🇧</span> English
         </span>
         <div class="card-actions">
@@ -60,14 +61,21 @@
         <textarea 
           id="sourceText" 
           placeholder="Enter English text here..." 
-          rows="4" 
+          rows="3" 
           maxlength="5000"
           autofocus></textarea>
       </div>
+
+      <!-- Word Suggestions (Singlish Phonetic Mode) -->
+      <div id="suggestionsWrapper" class="suggestions-wrapper hidden">
+        <span class="suggestions-title">Sinhala Word Suggestions:</span>
+        <div id="suggestionsList" class="suggestions-list"></div>
+      </div>
+
       <div class="card-footer">
         <span id="charCount" class="char-count">0 / 5000</span>
         <div id="statusIndicator" class="status-indicator hidden">
-          <span class="spinner"></span> Translating...
+          <span class="spinner"></span> <span id="statusText">Translating...</span>
         </div>
       </div>
     </div>
@@ -78,14 +86,14 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="9 18 15 12 9 6"></polyline>
         </svg>
-        Translate
+        <span id="translateBtnText">Translate</span>
       </button>
     </div>
 
     <!-- Output Card -->
     <div class="card output-card">
       <div class="card-header">
-        <span class="lang-label">
+        <span id="targetLangLabel" class="lang-label">
           <span class="flag-icon">🇱🇰</span> Sinhala (සිංහල)
         </span>
         <div class="card-actions">
@@ -95,7 +103,7 @@
               <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
             </svg>
           </button>
-          <button id="copyBtn" class="icon-btn copy-btn" title="Copy Sinhala text to clipboard" aria-label="Copy Sinhala text" disabled>
+          <button id="copyBtn" class="icon-btn copy-btn" title="Copy text to clipboard" aria-label="Copy text" disabled>
             <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -107,6 +115,13 @@
           </button>
         </div>
       </div>
+
+      <!-- Identified Sinhala Word (In Singlish mode) -->
+      <div id="identifiedWordWrapper" class="identified-word-wrapper hidden">
+        <span class="identified-label">Identified Sinhala Word:</span>
+        <div id="identifiedWord" class="identified-word"></div>
+      </div>
+
       <div id="targetContainer" class="output-wrapper">
         <div id="targetText" class="target-text placeholder-state" dir="ltr">
           Translation will appear here...

@@ -77,16 +77,16 @@ body {
   gap: 10px;
 }
 
-.logo-icon {
+.brand-logo-img {
   width: 34px;
   height: 34px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, #0284c7, #6366f1);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(2, 132, 199, 0.3));
+  transition: transform var(--transition-fast);
+}
+
+.brand-logo-img:hover {
+  transform: scale(1.06);
 }
 
 .brand-text h1 {
@@ -104,6 +104,44 @@ body {
   padding: 1px 6px;
   border-radius: 10px;
   letter-spacing: 0.5px;
+}
+
+/* Mode Switcher Tabs */
+.mode-switcher {
+  display: flex;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  padding: 3px;
+  border-radius: var(--radius-lg);
+  gap: 4px;
+}
+
+.mode-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all var(--transition-fast);
+}
+
+.mode-tab:hover:not(.active) {
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.mode-tab.active {
+  background: linear-gradient(135deg, var(--bg-accent), #3b82f6);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
 }
 
 /* Base Card Styling */
@@ -239,6 +277,81 @@ textarea::placeholder {
 
 .primary-btn:active {
   transform: translateY(0);
+}
+
+/* Word Suggestions (Singlish Mode) */
+.suggestions-wrapper {
+  padding: 8px 14px 10px 14px;
+  border-top: 1px dashed var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+.suggestions-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.suggestions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 85px;
+  overflow-y: auto;
+}
+
+.suggestion-chip {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: var(--font-sinhala);
+  font-size: 13px;
+  padding: 3px 10px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.suggestion-chip:hover {
+  border-color: var(--border-focus);
+  background-color: var(--bg-primary);
+  transform: translateY(-1px);
+}
+
+.suggestion-chip.selected {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #ffffff;
+  border-color: var(--border-focus);
+  font-weight: 600;
+}
+
+/* Identified Sinhala Word Card Section */
+.identified-word-wrapper {
+  padding: 8px 14px 8px 14px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: rgba(2, 132, 199, 0.08);
+}
+
+.identified-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--border-focus);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.identified-word {
+  font-family: var(--font-sinhala);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-top: 2px;
 }
 
 /* Output Container */

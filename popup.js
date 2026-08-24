@@ -5,8 +5,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const copyBtn = document.getElementById('copyBtn');
   const clearBtn = document.getElementById('clearBtn');
   const translateBtn = document.getElementById('translateBtn');
+  const translateBtnText = document.getElementById('translateBtnText');
   const speakBtn = document.getElementById('speakBtn');
   const statusIndicator = document.getElementById('statusIndicator');
+  const statusText = document.getElementById('statusText');
   const charCount = document.getElementById('charCount');
   const toast = document.getElementById('toast');
   const toastMessage = document.getElementById('toastMessage');
@@ -15,22 +17,74 @@ document.addEventListener('DOMContentLoaded', () => {
   const checkIcon = copyBtn.querySelector('.check-icon');
   const copyBtnText = copyBtn.querySelector('.btn-text');
 
-  let debounceTimer = null;
-  let currentTranslation = '';
+  // Mode & Suggestion DOM Elements
+  const modeEn2SiBtn = document.getElementById('modeEn2Si');
+  const modeSinglishBtn = document.getElementById('modeSinglish');
+  const sourceLangLabel = document.getElementById('sourceLangLabel');
+  const targetLangLabel = document.getElementById('targetLangLabel');
+  const suggestionsWrapper = document.getElementById('suggestionsWrapper');
+  const suggestionsList = document.getElementById('suggestionsList');
+  const identifiedWordWrapper = document.getElementById('identifiedWordWrapper');
+  const identifiedWord = document.getElementById('identifiedWord');
 
-  // Load saved state (Theme & Previous Text)
+  let debounceTimer = null;
+  let currentMode = 'en2si'; // 'en2si' or 'singlish'
+  let currentTranslation = '';
+  let currentIdentifiedSinhala = '';
+  let activeAudio = null;
+
+  // Initialize Storage (Theme, Mode, Last Input)
   initStorage();
 
   // Event Listeners
+  modeEn2SiBtn.addEventListener('click', () => switchMode('en2si'));
+  modeSinglishBtn.addEventListener('click', () => switchMode('singlish'));
   sourceText.addEventListener('input', handleInput);
-  translateBtn.addEventListener('click', () => performTranslation(sourceText.value.trim()));
+  translateBtn.addEventListener('click', () => triggerProcess(sourceText.value.trim()));
   clearBtn.addEventListener('click', handleClear);
   copyBtn.addEventListener('click', handleCopy);
   speakBtn.addEventListener('click', handleSpeak);
   themeToggleBtn.addEventListener('click', toggleTheme);
 
   /**
-   * Handle user typing with debounce
+   * Switch translation mode ('en2si' or 'singlish')
+   */
+  function switchMode(newMode) {
+    if (currentMode === newMode) return;
+
+    currentMode = newMode;
+
+    if (newMode === 'en2si') {
+      modeEn2SiBtn.classList.add('active');
+      modeEn2SiBtn.setAttribute('aria-selected', 'true');
+      modeSinglishBtn.classList.remove('active');
+      modeSinglishBtn.setAttribute('aria-selected', 'false');
+
+      sourceLangLabel.innerHTML = '<span class="flag-icon">🇬🇧</span> English';
+      targetLangLabel.innerHTML = '<span class="flag-icon">🇱🇰</span> Sinhala (සිංහල)';
+      sourceText.placeholder = 'Enter English text here...';
+      translateBtnText.textContent = 'Translate';
+
+      suggestionsWrapper.classList.add('hidden');
+      identifiedWordWrapper.classList.add('hidden');
+    } else {
+      modeSinglishBtn.classList.add('active');
+      modeSinglishBtn.setAttribute('aria-selected', 'true');
+      modeEn2SiBtn.classList.remove('active');
+      modeEn2SiBtn.setAttribute('aria-selected', 'false');
+
+      sourceLangLabel.innerHTML = '<span class="flag-icon">🗣️</span> Singlish (Phonetic English)';
+      targetLangLabel.innerHTML = '<span class="flag-icon">🇬🇧</span> English Meaning';
+      sourceText.placeholder = 'Type Sinhala word in English (e.g. kohomada, isthuthi)...';
+      translateBtnText.textContent = 'Identify & Translate';
+    }
+
+    saveState(sourceText.value, currentMode);
+    handleInput();
+  }
+
+  /**
+   * Input event handler with 300ms debounce
    */
   function handleInput() {
     const text = sourceText.value;
@@ -41,57 +95,61 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       clearBtn.classList.add('hidden');
       resetOutput();
-      saveState('');
+      saveState('', currentMode);
       return;
     }
 
-    // Save current input state
-    saveState(text);
+    saveState(text, currentMode);
 
-    // Debounce live translation (350ms)
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      performTranslation(text.trim());
-    }, 350);
+      triggerProcess(text.trim());
+    }, 300);
   }
 
   /**
-   * Perform Google Translate API call
-   * @param {string} text 
+   * Main router for processing text based on mode
    */
-  async function performTranslation(text) {
+  function triggerProcess(text) {
     if (!text) {
       resetOutput();
       return;
     }
 
-    showLoading(true);
+    if (currentMode === 'en2si') {
+      performEnglishToSinhala(text);
+    } else {
+      performSinglishPhonetic(text);
+    }
+  }
+
+  /**
+   * Mode 1: English ➔ Sinhala Standard Translation
+   */
+  async function performEnglishToSinhala(text) {
+    showLoading(true, 'Translating...');
+    suggestionsWrapper.classList.add('hidden');
+    identifiedWordWrapper.classList.add('hidden');
 
     try {
-      // Google Translate free public endpoint
       const apiUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=si&dt=t&q=${encodeURIComponent(text)}`;
-      
       const response = await fetch(apiUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
 
       const data = await response.json();
-      
-      // Parse translation segments
       if (data && data[0] && Array.isArray(data[0])) {
-        const translatedSegments = data[0]
+        const fullTranslation = data[0]
           .filter(item => item && item[0])
-          .map(item => item[0]);
+          .map(item => item[0])
+          .join('');
         
-        const fullTranslation = translatedSegments.join('');
+        currentIdentifiedSinhala = '';
         renderTranslation(fullTranslation);
       } else {
-        throw new Error('Invalid response structure');
+        throw new Error('Invalid structure');
       }
-
     } catch (error) {
-      console.error('Translation error:', error);
+      console.error('Translation Error:', error);
       renderError('Translation failed. Please check network connection.');
     } finally {
       showLoading(false);
@@ -99,7 +157,123 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Render translated text in output area
+   * Mode 2: Singlish Phonetic ➔ Identify Sinhala Word & Translate to English
+   */
+  async function performSinglishPhonetic(text) {
+    showLoading(true, 'Identifying Sinhala...');
+
+    try {
+      // 1. Fetch phonetic suggestions from Google Input Tools
+      const inputToolsUrl = `https://inputtools.google.com/request?text=${encodeURIComponent(text)}&itc=si-t-i0-und&num=8`;
+      const response = await fetch(inputToolsUrl);
+      
+      let candidates = [];
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data[0] === 'SUCCESS' && data[1] && data[1][0] && data[1][0][1]) {
+          candidates = data[1][0][1];
+        }
+      }
+
+      // Fallback if API fails or yields no candidates
+      if (!candidates || candidates.length === 0) {
+        candidates = transliterateSinglishOffline(text);
+      }
+
+      if (!candidates || candidates.length === 0) {
+        renderError('Could not identify Sinhala word.');
+        return;
+      }
+
+      // Render candidate chips and select top candidate
+      renderSuggestions(candidates, text);
+      const topCandidate = candidates[0];
+      await selectSinhalaCandidate(topCandidate);
+
+    } catch (error) {
+      console.error('Singlish Processing Error:', error);
+      // Try offline fallback on fetch exception
+      const fallbackCandidates = transliterateSinglishOffline(text);
+      if (fallbackCandidates.length > 0) {
+        renderSuggestions(fallbackCandidates, text);
+        await selectSinhalaCandidate(fallbackCandidates[0]);
+      } else {
+        renderError('Failed to process phonetic input.');
+      }
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  /**
+   * Render word candidate suggestion chips
+   */
+  function renderSuggestions(candidates, originalInput) {
+    suggestionsList.innerHTML = '';
+
+    if (candidates.length === 0) {
+      suggestionsWrapper.classList.add('hidden');
+      return;
+    }
+
+    candidates.forEach((cand, idx) => {
+      const chip = document.createElement('button');
+      chip.className = `suggestion-chip ${idx === 0 ? 'selected' : ''}`;
+      chip.textContent = cand;
+      chip.type = 'button';
+
+      chip.addEventListener('click', () => {
+        // Highlight active chip
+        const allChips = suggestionsList.querySelectorAll('.suggestion-chip');
+        allChips.forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+
+        // Translate selected candidate
+        selectSinhalaCandidate(cand);
+      });
+
+      suggestionsList.appendChild(chip);
+    });
+
+    suggestionsWrapper.classList.remove('hidden');
+  }
+
+  /**
+   * Translate selected Sinhala candidate word to English
+   */
+  async function selectSinhalaCandidate(sinhalaWord) {
+    currentIdentifiedSinhala = sinhalaWord;
+    identifiedWord.textContent = sinhalaWord;
+    identifiedWordWrapper.classList.remove('hidden');
+
+    showLoading(true, 'Translating meaning...');
+
+    try {
+      const translateUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=si&tl=en&dt=t&q=${encodeURIComponent(sinhalaWord)}`;
+      const res = await fetch(translateUrl);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+
+      const data = await res.json();
+      if (data && data[0] && Array.isArray(data[0])) {
+        const englishMeaning = data[0]
+          .filter(item => item && item[0])
+          .map(item => item[0])
+          .join('');
+
+        renderTranslation(englishMeaning);
+      } else {
+        renderTranslation(sinhalaWord); // Display Sinhala word if meaning unavailable
+      }
+    } catch (err) {
+      console.warn('Sinhala -> EN meaning fetch error:', err);
+      renderTranslation('Meaning unavailable offline');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  /**
+   * Render translation in target card
    */
   function renderTranslation(translated) {
     currentTranslation = translated;
@@ -110,41 +284,51 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Render error message
+   * Render error state
    */
   function renderError(message) {
     currentTranslation = '';
+    currentIdentifiedSinhala = '';
     targetText.textContent = message;
     targetText.classList.add('placeholder-state');
     copyBtn.disabled = true;
     speakBtn.classList.add('hidden');
+    suggestionsWrapper.classList.add('hidden');
+    identifiedWordWrapper.classList.add('hidden');
   }
 
   /**
-   * Reset output area to default placeholder
+   * Reset outputs to initial placeholder
    */
   function resetOutput() {
     currentTranslation = '';
+    currentIdentifiedSinhala = '';
     targetText.textContent = 'Translation will appear here...';
     targetText.classList.add('placeholder-state');
     copyBtn.disabled = true;
     speakBtn.classList.add('hidden');
+    suggestionsWrapper.classList.add('hidden');
+    identifiedWordWrapper.classList.add('hidden');
   }
 
   /**
-   * Handle Copy to Clipboard
+   * Copy to clipboard (in Singlish mode, copies Identified Sinhala + English meaning)
    */
   async function handleCopy() {
-    if (!currentTranslation) return;
+    let copyContent = currentTranslation;
+    if (currentMode === 'singlish' && currentIdentifiedSinhala) {
+      copyContent = `${currentIdentifiedSinhala} (${currentTranslation})`;
+    }
+
+    if (!copyContent) return;
 
     try {
-      await navigator.clipboard.writeText(currentTranslation);
+      await navigator.clipboard.writeText(copyContent);
       showCopySuccessUI();
       showToast('Copied to clipboard!');
     } catch (err) {
-      // Fallback copy execution
       const textArea = document.createElement('textarea');
-      textArea.value = currentTranslation;
+      textArea.value = copyContent;
       document.body.appendChild(textArea);
       textArea.select();
       try {
@@ -159,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Visual UI feedback for Copy button
+   * Visual feedback for Copy Button
    */
   function showCopySuccessUI() {
     copyBtn.classList.add('copied');
@@ -176,78 +360,84 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Handle Clear Button
-   */
-  function handleClear() {
-    sourceText.value = '';
-    updateCharCount(0);
-    clearBtn.classList.add('hidden');
-    resetOutput();
-    saveState('');
-    sourceText.focus();
-  }
-
-  let currentAudio = null;
-
-  /**
-   * Handle Text-to-Speech (Pronunciation) via Google TTS endpoint
+   * Handle Audio Pronunciation (Text-To-Speech)
    */
   function handleSpeak() {
-    if (!currentTranslation) return;
+    let textToSpeak = currentTranslation;
+    let lang = 'si';
 
-    // Stop previous audio playback if running
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio = null;
+    if (currentMode === 'singlish' && currentIdentifiedSinhala) {
+      textToSpeak = currentIdentifiedSinhala;
+      lang = 'si';
+    } else if (currentMode === 'en2si') {
+      lang = 'si';
+    }
+
+    if (!textToSpeak) return;
+
+    if (activeAudio) {
+      activeAudio.pause();
+      activeAudio = null;
     }
 
     speakBtn.classList.add('playing');
 
-    // Google Cloud Translate TTS audio URL
-    const ttsUrl = `https://translate.googleapis.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(currentTranslation)}&tl=si&client=tw-ob`;
-    currentAudio = new Audio(ttsUrl);
+    const ttsUrl = `https://translate.googleapis.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(textToSpeak)}&tl=${lang}&client=tw-ob`;
+    activeAudio = new Audio(ttsUrl);
 
-    currentAudio.play().then(() => {
-      // Audio playback started successfully
-    }).catch((err) => {
-      console.warn('Google TTS audio play error, trying browser SpeechSynthesis:', err);
+    activeAudio.play().then(() => {
+      // Audio started playing
+    }).catch(() => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(currentTranslation);
-        utterance.lang = 'si';
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.lang = lang;
         utterance.rate = 0.9;
         utterance.onend = () => speakBtn.classList.remove('playing');
         utterance.onerror = () => speakBtn.classList.remove('playing');
         window.speechSynthesis.speak(utterance);
       } else {
         speakBtn.classList.remove('playing');
-        showToast('Audio playback not supported');
+        showToast('Audio playback unavailable');
       }
     });
 
-    currentAudio.onended = () => {
+    activeAudio.onended = () => {
       speakBtn.classList.remove('playing');
-      currentAudio = null;
+      activeAudio = null;
     };
 
-    currentAudio.onerror = () => {
+    activeAudio.onerror = () => {
       speakBtn.classList.remove('playing');
-      currentAudio = null;
+      activeAudio = null;
     };
   }
 
   /**
-   * Character Counter Update
+   * Handle Clear Input
+   */
+  function handleClear() {
+    sourceText.value = '';
+    updateCharCount(0);
+    clearBtn.classList.add('hidden');
+    resetOutput();
+    saveState('', currentMode);
+    sourceText.focus();
+  }
+
+  /**
+   * Update character counter
    */
   function updateCharCount(count) {
     charCount.textContent = `${count} / 5000`;
   }
 
   /**
-   * Loading Spinner Toggle
+   * Toggle loading indicator
    */
-  function showLoading(isLoading) {
+  function showLoading(isLoading, text = 'Translating...') {
     if (isLoading) {
+      statusText.textContent = text;
       statusIndicator.classList.remove('hidden');
     } else {
       statusIndicator.classList.add('hidden');
@@ -255,7 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Show Notification Toast
+   * Show notification toast
    */
   function showToast(msg) {
     toastMessage.textContent = msg;
@@ -266,13 +456,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Theme Toggle Logic
+   * Toggle dark/light theme
    */
   function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', newTheme);
-    
+
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.set({ theme: newTheme });
     } else {
@@ -281,24 +471,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /**
-   * Save text and theme state
+   * Save input state & mode
    */
-  function saveState(text) {
+  function saveState(text, mode) {
+    const data = { lastText: text, mode: mode };
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-      chrome.storage.local.set({ lastText: text });
+      chrome.storage.local.set(data);
     } else {
       localStorage.setItem('lastText', text);
+      localStorage.setItem('mode', mode);
     }
   }
 
   /**
-   * Restore state on popup open
+   * Restore saved storage on extension load
    */
   function initStorage() {
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-      chrome.storage.local.get(['lastText', 'theme'], (result) => {
+      chrome.storage.local.get(['lastText', 'theme', 'mode'], (result) => {
         if (result.theme) {
           document.documentElement.setAttribute('data-theme', result.theme);
+        }
+        if (result.mode) {
+          switchMode(result.mode);
         }
         if (result.lastText) {
           sourceText.value = result.lastText;
@@ -307,12 +502,40 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } else {
       const theme = localStorage.getItem('theme');
+      const savedMode = localStorage.getItem('mode');
       const lastText = localStorage.getItem('lastText');
+
       if (theme) document.documentElement.setAttribute('data-theme', theme);
+      if (savedMode) switchMode(savedMode);
       if (lastText) {
         sourceText.value = lastText;
         handleInput();
       }
     }
+  }
+
+  /**
+   * Offline UCSC Singlish phonetic parser engine fallback
+   */
+  function transliterateSinglishOffline(text) {
+    if (!text) return [];
+
+    let input = text.toLowerCase().trim();
+
+    const replacements = [
+      ['nng', 'ඟ'], ['mbo', 'ඹො'], ['mba', 'ඹ'], ['nd', 'ඳ'], ['nnd', 'ඬ'], ['jny', 'ඥ'],
+      ['sh', 'ශ'], ['ss', 'ෂ'], ['ch', 'ච'], ['kh', 'ඛ'], ['gh', 'ඝ'], ['chh', 'ඡ'],
+      ['jh', 'ඣ'], ['th', 'ත'], ['dh', 'ද'], ['ph', 'ඵ'], ['bh', 'භ'], ['ny', 'ඤ'],
+      ['aae', 'ෑ'], ['ae', 'ැ'], ['aa', 'ා'], ['ii', 'ී'], ['uu', 'ූ'], ['ee', 'ේ'], ['oo', 'ෝ'], ['ai', 'ෛ'], ['au', '<ctrl42>'],
+      ['k', 'ක'], ['g', 'ග'], ['c', 'ච'], ['j', 'ජ'], ['t', 'ත'], ['d', 'ද'], ['n', 'න'],
+      ['p', 'ප'], ['b', 'බ'], ['m', 'ම'], ['y', 'ය'], ['r', 'ර'], ['l', 'ල'], ['v', 'ව'], ['w', 'ව'],
+      ['s', 'ස'], ['h', 'හ'], ['f', 'ෆ'], ['a', 'අ'], ['i', 'ඉ'], ['u', 'උ'], ['e', 'එ'], ['o', 'ඔ']
+    ];
+
+    for (const [pattern, char] of replacements) {
+      input = input.split(pattern).join(char);
+    }
+
+    return [input];
   }
 });

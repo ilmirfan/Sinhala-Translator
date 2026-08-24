@@ -10,12 +10,15 @@ A fast, lightweight, and modern Chrome Extension (Manifest V3) that translates E
 
 ## ✨ Features
 
+- 🗣️ **Singlish Phonetic Mode**: Type Sinhala words phonetically using English letters (e.g. `kohomada`, `isthuthi`, `subha udasanak`).
+- 💡 **Interactive Word Suggestions**: View real-time Sinhala word suggestion candidate chips and pick the exact intended word.
+- 🌐 **Dual Translation**: Seamlessly switch between **English ➔ Sinhala** and **Singlish ➔ Sinhala & English Meaning**.
 - ⚡ **Real-Time Translation**: Translates as you type with debounced input optimization or via manual trigger.
-- 📋 **One-Click Copy**: Copy translated Sinhala text directly to your clipboard with instant visual confirmation.
+- 📋 **One-Click Copy**: Copy translated text or identified Sinhala word + meaning directly to your clipboard.
 - 🔊 **Audio Pronunciation**: Stream natural Sinhala speech output directly using Google Text-to-Speech (TTS).
 - 🎨 **Modern Aesthetics**: Sleek dark & light theme toggle with smooth animations, custom fonts (`Noto Sans Sinhala`), and character counting.
 - 🧹 **Quick Clear**: One-tap text clear button.
-- 🔒 **Privacy Focused & Free**: Uses public Google Translate endpoints — no personal API keys or account registration needed.
+- 🔒 **Privacy Focused & Free**: Uses public Google endpoints — no personal API keys or account registration needed.
 
 ---
 

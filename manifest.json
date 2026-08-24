@@ -20,6 +20,7 @@
     "storage"
   ],
   "host_permissions": [
-    "https://translate.googleapis.com/*"
+    "https://translate.googleapis.com/*",
+    "https://inputtools.google.com/*"
   ]
 }
