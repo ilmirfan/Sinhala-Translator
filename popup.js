@@ -3,6 +3,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const sourceText = document.getElementById('sourceText');
   const targetText = document.getElementById('targetText');
   const copyBtn = document.getElementById('copyBtn');
+  const notesAction = document.getElementById('notesAction');
+  const addToNotesBtn = document.getElementById('addToNotesBtn');
   const clearBtn = document.getElementById('clearBtn');
   const translateBtn = document.getElementById('translateBtn');
   const translateBtnText = document.getElementById('translateBtnText');
@@ -16,6 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const copyIcon = copyBtn.querySelector('.copy-icon');
   const checkIcon = copyBtn.querySelector('.check-icon');
   const copyBtnText = copyBtn.querySelector('.btn-text');
+
+  // Toolbar & OCR Buttons
+  const snipBtn = document.getElementById('snipBtn');
+  const grabTextBtn = document.getElementById('grabTextBtn');
+  const uploadImgBtn = document.getElementById('uploadImgBtn');
+  const imageInput = document.getElementById('imageInput');
 
   // Mode & Suggestion DOM Elements
   const modeEn2SiBtn = document.getElementById('modeEn2Si');
@@ -33,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let currentIdentifiedSinhala = '';
   let activeAudio = null;
 
-  // Initialize Storage (Theme, Mode, Last Input)
+  // Initialize Storage & Pending Actions
   initStorage();
 
   // Event Listeners
@@ -43,8 +51,15 @@ document.addEventListener('DOMContentLoaded', () => {
   translateBtn.addEventListener('click', () => triggerProcess(sourceText.value.trim()));
   clearBtn.addEventListener('click', handleClear);
   copyBtn.addEventListener('click', handleCopy);
+  addToNotesBtn.addEventListener('click', handleAddToNotes);
   speakBtn.addEventListener('click', handleSpeak);
   themeToggleBtn.addEventListener('click', toggleTheme);
+
+  // Action Toolbar Listeners
+  snipBtn.addEventListener('click', handleStartSnip);
+  grabTextBtn.addEventListener('click', handleGrabWebSelection);
+  uploadImgBtn.addEventListener('click', () => imageInput.click());
+  imageInput.addEventListener('change', handleImageUpload);
 
   /**
    * Switch translation mode ('en2si' or 'singlish')
@@ -128,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   async function performEnglishToSinhala(text) {
     showLoading(true, 'Translating...');
+    notesAction.classList.add('hidden');
     suggestionsWrapper.classList.add('hidden');
     identifiedWordWrapper.classList.add('hidden');
 
@@ -192,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     } catch (error) {
       console.error('Singlish Processing Error:', error);
-      // Try offline fallback on fetch exception
       const fallbackCandidates = transliterateSinglishOffline(text);
       if (fallbackCandidates.length > 0) {
         renderSuggestions(fallbackCandidates, text);
@@ -223,12 +238,10 @@ document.addEventListener('DOMContentLoaded', () => {
       chip.type = 'button';
 
       chip.addEventListener('click', () => {
-        // Highlight active chip
         const allChips = suggestionsList.querySelectorAll('.suggestion-chip');
         allChips.forEach(c => c.classList.remove('selected'));
         chip.classList.add('selected');
 
-        // Translate selected candidate
         selectSinhalaCandidate(cand);
       });
 
@@ -243,6 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   async function selectSinhalaCandidate(sinhalaWord) {
     currentIdentifiedSinhala = sinhalaWord;
+    notesAction.classList.add('hidden');
     identifiedWord.textContent = sinhalaWord;
     identifiedWordWrapper.classList.remove('hidden');
 
@@ -262,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         renderTranslation(englishMeaning);
       } else {
-        renderTranslation(sinhalaWord); // Display Sinhala word if meaning unavailable
+        renderTranslation(sinhalaWord);
       }
     } catch (err) {
       console.warn('Sinhala -> EN meaning fetch error:', err);
@@ -270,6 +284,133 @@ document.addEventListener('DOMContentLoaded', () => {
     } finally {
       showLoading(false);
     }
+  }
+
+  /**
+   * Action 1: Trigger Screen Snipper Overlay
+   */
+  function handleStartSnip() {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+      chrome.runtime.sendMessage({ action: 'START_SNIPPER' }, (res) => {
+        if (res && res.success) {
+          showToast('Snipping tool activated! Drag box on active tab.');
+          window.close(); // Close popup so user can drag selection on active tab
+        } else {
+          showToast('Failed to start snipper on current tab');
+        }
+      });
+    } else {
+      showToast('Screen snipping requires Chrome extension environment');
+    }
+  }
+
+  /**
+   * Action 2: Grab Highlighted Selection from Active Web Tab
+   */
+  function handleGrabWebSelection() {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+      showLoading(true, 'Grabbing web selection...');
+      chrome.runtime.sendMessage({ action: 'GET_WEB_SELECTION' }, (res) => {
+        showLoading(false);
+        if (res && res.success && res.text) {
+          sourceText.value = res.text;
+          showToast('Grabbed selected text!');
+          handleInput();
+        } else {
+          showToast('No text selected on active webpage tab');
+        }
+      });
+    } else {
+      showToast('Grab selection requires active web tab');
+    }
+  }
+
+  /**
+   * Action 3: Handle Local Image File Upload for OCR
+   */
+  function handleImageUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target.result;
+      performOcrOnImage(dataUrl);
+    };
+    reader.readAsDataURL(file);
+    imageInput.value = ''; // Reset input
+  }
+
+  /**
+   * Perform Sinhala / English OCR on image data URL
+   */
+  async function performOcrOnImage(dataUrl) {
+    showLoading(true, 'Recognizing Sinhala text...');
+
+    try {
+      let ocrText = '';
+
+      // 1. Client-Side Tesseract.js OCR
+      if (typeof Tesseract !== 'undefined') {
+        const worker = await Tesseract.createWorker('sin+eng');
+        const ret = await worker.recognize(dataUrl);
+        ocrText = ret.data.text ? ret.data.text.trim() : '';
+        await worker.terminate();
+      }
+
+      // 2. OCR API Fallback if client Tesseract yields empty
+      if (!ocrText) {
+        ocrText = await fetchOcrSpaceApi(dataUrl);
+      }
+
+      if (ocrText && ocrText.length > 0) {
+        // Clean OCR text
+        const cleanedText = ocrText.replace(/[\r\n]+/g, ' ').trim();
+        sourceText.value = cleanedText;
+
+        // Auto-detect Sinhala script vs English to pick best mode
+        const hasSinhalaScript = /[\u0D80-\u0DFF]/.test(cleanedText);
+        if (hasSinhalaScript && currentMode === 'en2si') {
+          switchMode('singlish');
+        }
+
+        showToast('OCR Text Recognized!');
+        handleInput();
+      } else {
+        renderError('No clear text recognized in image.');
+      }
+    } catch (err) {
+      console.error('OCR Error:', err);
+      renderError('OCR failed. Try a clearer image or cropped area.');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  /**
+   * OCR.space API Fallback
+   */
+  async function fetchOcrSpaceApi(dataUrl) {
+    try {
+      const formData = new FormData();
+      formData.append('base64Image', dataUrl);
+      formData.append('apikey', 'helloworld');
+      formData.append('language', 'sin');
+
+      const response = await fetch('https://api.ocr.space/parse/image', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) return '';
+      const data = await response.json();
+      if (data && data.ParsedResults && data.ParsedResults[0] && data.ParsedResults[0].ParsedText) {
+        return data.ParsedResults[0].ParsedText.trim();
+      }
+    } catch (err) {
+      console.warn('OCR space API fallback error:', err);
+    }
+    return '';
   }
 
   /**
@@ -281,6 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
     targetText.classList.remove('placeholder-state');
     copyBtn.disabled = false;
     speakBtn.classList.remove('hidden');
+    notesAction.classList.toggle('hidden', !getVocabularyEntry());
   }
 
   /**
@@ -293,6 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
     targetText.classList.add('placeholder-state');
     copyBtn.disabled = true;
     speakBtn.classList.add('hidden');
+    notesAction.classList.add('hidden');
     suggestionsWrapper.classList.add('hidden');
     identifiedWordWrapper.classList.add('hidden');
   }
@@ -307,12 +450,13 @@ document.addEventListener('DOMContentLoaded', () => {
     targetText.classList.add('placeholder-state');
     copyBtn.disabled = true;
     speakBtn.classList.add('hidden');
+    notesAction.classList.add('hidden');
     suggestionsWrapper.classList.add('hidden');
     identifiedWordWrapper.classList.add('hidden');
   }
 
   /**
-   * Copy to clipboard (in Singlish mode, copies Identified Sinhala + English meaning)
+   * Copy to clipboard
    */
   async function handleCopy() {
     let copyContent = currentTranslation;
@@ -340,6 +484,44 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       document.body.removeChild(textArea);
     }
+  }
+
+  /**
+   * Open the Save Sinhala Word shortcut with the current vocabulary pair.
+   */
+  function handleAddToNotes() {
+    const entry = getVocabularyEntry();
+    if (!entry) {
+      showToast('Translate a word before saving');
+      return;
+    }
+
+    const shortcutUrl = `shortcuts://run-shortcut?name=Save%20Sinhala%20Word&input=text&text=${encodeURIComponent(entry)}`;
+
+    try {
+      window.location.href = shortcutUrl;
+    } catch (error) {
+      console.error('Could not open Apple Shortcuts:', error);
+      showToast('Could not open Apple Shortcuts');
+    }
+  }
+
+  /**
+   * Return the current translation as "Sinhala — English".
+   */
+  function getVocabularyEntry() {
+    if (!currentTranslation) return '';
+
+    if (currentMode === 'singlish' && currentIdentifiedSinhala) {
+      return `${currentIdentifiedSinhala} — ${currentTranslation}`;
+    }
+
+    const englishText = sourceText.value.trim();
+    if (currentMode === 'en2si' && englishText) {
+      return `${currentTranslation} — ${englishText}`;
+    }
+
+    return '';
   }
 
   /**
@@ -386,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
     activeAudio = new Audio(ttsUrl);
 
     activeAudio.play().then(() => {
-      // Audio started playing
+      // Audio playing
     }).catch(() => {
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -488,13 +670,30 @@ document.addEventListener('DOMContentLoaded', () => {
    */
   function initStorage() {
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-      chrome.storage.local.get(['lastText', 'theme', 'mode'], (result) => {
+      chrome.storage.local.get(['lastText', 'theme', 'mode', 'pendingSelection', 'pendingOcrImage'], (result) => {
         if (result.theme) {
           document.documentElement.setAttribute('data-theme', result.theme);
         }
         if (result.mode) {
           switchMode(result.mode);
         }
+
+        // Check for pending right-click context menu text selection
+        if (result.pendingSelection) {
+          sourceText.value = result.pendingSelection;
+          chrome.storage.local.remove(['pendingSelection']);
+          handleInput();
+          return;
+        }
+
+        // Check for pending screen snippet image for OCR
+        if (result.pendingOcrImage) {
+          const imgData = result.pendingOcrImage;
+          chrome.storage.local.remove(['pendingOcrImage']);
+          performOcrOnImage(imgData);
+          return;
+        }
+
         if (result.lastText) {
           sourceText.value = result.lastText;
           handleInput();
@@ -526,7 +725,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ['nng', 'ඟ'], ['mbo', 'ඹො'], ['mba', 'ඹ'], ['nd', 'ඳ'], ['nnd', 'ඬ'], ['jny', 'ඥ'],
       ['sh', 'ශ'], ['ss', 'ෂ'], ['ch', 'ච'], ['kh', 'ඛ'], ['gh', 'ඝ'], ['chh', 'ඡ'],
       ['jh', 'ඣ'], ['th', 'ත'], ['dh', 'ද'], ['ph', 'ඵ'], ['bh', 'භ'], ['ny', 'ඤ'],
-      ['aae', 'ෑ'], ['ae', 'ැ'], ['aa', 'ා'], ['ii', 'ී'], ['uu', 'ූ'], ['ee', 'ේ'], ['oo', 'ෝ'], ['ai', 'ෛ'], ['au', '<ctrl42>'],
+      ['aae', 'ෑ'], ['ae', 'ැ'], ['aa', 'ා'], ['ii', 'ී'], ['uu', 'ූ'], ['ee', 'ේ'], ['oo', 'ෝ'], ['ai', 'ෛ'], ['au', 'ෞ'],
       ['k', 'ක'], ['g', 'ග'], ['c', 'ච'], ['j', 'ජ'], ['t', 'ත'], ['d', 'ද'], ['n', 'න'],
       ['p', 'ප'], ['b', 'බ'], ['m', 'ම'], ['y', 'ය'], ['r', 'ර'], ['l', 'ල'], ['v', 'ව'], ['w', 'ව'],
       ['s', 'ස'], ['h', 'හ'], ['f', 'ෆ'], ['a', 'අ'], ['i', 'ඉ'], ['u', 'උ'], ['e', 'එ'], ['o', 'ඔ']

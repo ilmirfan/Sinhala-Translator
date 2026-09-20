@@ -384,6 +384,18 @@ textarea::placeholder {
   font-style: italic;
 }
 
+.output-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 7px 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.notes-btn {
+  color: var(--border-focus);
+  font-weight: 600;
+}
+
 /* Buttons Styling */
 .icon-btn {
   background: transparent;
@@ -486,6 +498,44 @@ textarea::placeholder {
 /* Utility Classes */
 .hidden {
   display: none !important;
+}
+
+/* Action Toolbar (OCR, Selection, Upload) */
+.action-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tool-btn {
+  flex: 1;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+}
+
+.tool-btn:hover {
+  background-color: var(--bg-accent);
+  color: #ffffff;
+  border-color: var(--border-focus);
+  transform: translateY(-1px);
+}
+
+.tool-btn:active {
+  transform: translateY(0);
 }
 
 /* Scrollbar Customization */

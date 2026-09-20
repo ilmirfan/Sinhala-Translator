@@ -57,6 +57,20 @@
           <button id="clearBtn" class="text-btn hidden" title="Clear input text">Clear</button>
         </div>
       </div>
+
+      <!-- Action Toolbar (OCR, Selection Grab, Image Upload) -->
+      <div class="action-toolbar">
+        <button id="snipBtn" class="tool-btn" title="Drag & select area on active screen tab for Sinhala OCR">
+          <span>✂️</span> Snip OCR
+        </button>
+        <button id="grabTextBtn" class="tool-btn" title="Grab highlighted Sinhala text from active tab">
+          <span>📝</span> Grab Selection
+        </button>
+        <button id="uploadImgBtn" class="tool-btn" title="Upload image file for Sinhala OCR">
+          <span>🖼️</span> Upload Image
+        </button>
+        <input type="file" id="imageInput" accept="image/*" class="hidden">
+      </div>
       <div class="input-wrapper">
         <textarea 
           id="sourceText" 
@@ -127,6 +141,11 @@
           Translation will appear here...
         </div>
       </div>
+      <div id="notesAction" class="output-actions hidden">
+        <button id="addToNotesBtn" class="text-btn notes-btn" type="button">
+          Add to Notes
+        </button>
+      </div>
     </div>
 
     <!-- Notification Toast -->
@@ -138,6 +157,7 @@
     </div>
   </div>
 
+  <script src="lib/tesseract.min.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

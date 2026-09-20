@@ -12,9 +12,14 @@ A fast, lightweight, and modern Chrome Extension (Manifest V3) that translates E
 
 - 🗣️ **Singlish Phonetic Mode**: Type Sinhala words phonetically using English letters (e.g. `kohomada`, `isthuthi`, `subha udasanak`).
 - 💡 **Interactive Word Suggestions**: View real-time Sinhala word suggestion candidate chips and pick the exact intended word.
+- ✂️ **Screen Snipper & Sinhala OCR**: Drag a rectangular selection box anywhere on your active screen tab to crop and recognize Sinhala text via OCR.
+- 📝 **Web Text Grabber**: Instantly pull highlighted Sinhala text from your active webpage tab.
+- 🖼️ **Image File OCR**: Upload any image file from your computer containing Sinhala script for optical character recognition.
+- 🖱️ **Context Menu Shortcut**: Right-click selected text on any webpage to translate instantly.
 - 🌐 **Dual Translation**: Seamlessly switch between **English ➔ Sinhala** and **Singlish ➔ Sinhala & English Meaning**.
 - ⚡ **Real-Time Translation**: Translates as you type with debounced input optimization or via manual trigger.
 - 📋 **One-Click Copy**: Copy translated text or identified Sinhala word + meaning directly to your clipboard.
+- 🗒️ **Save to Apple Notes**: Append translated vocabulary to a dedicated Apple Note through a macOS Shortcut.
 - 🔊 **Audio Pronunciation**: Stream natural Sinhala speech output directly using Google Text-to-Speech (TTS).
 - 🎨 **Modern Aesthetics**: Sleek dark & light theme toggle with smooth animations, custom fonts (`Noto Sans Sinhala`), and character counting.
 - 🧹 **Quick Clear**: One-tap text clear button.
@@ -43,6 +48,49 @@ A fast, lightweight, and modern Chrome Extension (Manifest V3) that translates E
 
 5. **Pin & Use**:
    - Click the Extension puzzle icon in Chrome toolbar and pin **Sinhala Translator**.
+
+---
+
+## 🗒️ Save Translations to Apple Notes
+
+Completed translations include an **Add to Notes** action. It sends the vocabulary entry to Apple Shortcuts in this format:
+
+```text
+සිංහල වචනය — English translation
+```
+
+For example:
+
+```text
+ලස්සන — Beautiful
+```
+
+### Create the Apple Shortcut
+
+1. Open **Apple Notes** on your Mac.
+2. Create a note whose title is exactly **Sinhala Vocabulary**.
+3. Open **Apple Shortcuts** and click **+** to create a shortcut.
+4. Name it exactly **Save Sinhala Word**.
+5. Search for and add the **Append to Note** action.
+6. Set the content to append to **Shortcut Input**.
+7. Set the destination note to **Sinhala Vocabulary**.
+8. Close the editor; Shortcuts saves the shortcut automatically.
+
+The extension invokes the shortcut through the macOS URL scheme:
+
+```text
+shortcuts://run-shortcut?name=Save%20Sinhala%20Word&input=text&text=...
+```
+
+No additional Chrome extension permissions, native application, server, or dependencies are required.
+
+### Use It
+
+1. After updating the extension files, open `chrome://extensions` and click **Reload** for Sinhala Translator.
+2. Translate a word in either translation mode.
+3. Click **Add to Notes** below the translation result.
+4. The first time, approve any prompts from Chrome, Shortcuts, or Notes.
+5. Confirm that the entry appears in the **Sinhala Vocabulary** note.
 
 ---
 

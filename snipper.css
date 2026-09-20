@@ -1,0 +1,162 @@
+/* Screen Snipper Overlay Styles */
+#sinhala-snipper-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(15, 23, 42, 0.4) !important;
+  backdrop-filter: blur(2px) !important;
+  z-index: 2147483647 !important;
+  cursor: crosshair !important;
+  user-select: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+#sinhala-snipper-box {
+  position: absolute !important;
+  border: 2px dashed #38bdf8 !important;
+  background-color: rgba(56, 189, 248, 0.15) !important;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45) !important;
+  pointer-events: none !important;
+  z-index: 2147483647 !important;
+  border-radius: 4px !important;
+}
+
+#sinhala-snipper-hint {
+  position: fixed !important;
+  top: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  background: linear-gradient(135deg, #0f172a, #1e293b) !important;
+  color: #f8fafc !important;
+  border: 1px solid #0284c7 !important;
+  padding: 10px 20px !important;
+  border-radius: 30px !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+  z-index: 2147483647 !important;
+  pointer-events: none !important;
+  letter-spacing: 0.3px !important;
+}
+
+/* Floating OCR Result Card on Webpage */
+#sinhala-snipper-card {
+  position: fixed !important;
+  z-index: 2147483647 !important;
+  width: 320px !important;
+  background: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid #0284c7 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 35px rgba(0, 0, 0, 0.6) !important;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+  overflow: hidden !important;
+  animation: snipperFadeIn 0.2s ease !important;
+}
+
+@keyframes snipperFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.snipper-card-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 10px 14px !important;
+  background-color: #1e293b !important;
+  border-bottom: 1px solid #334155 !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #38bdf8 !important;
+}
+
+.snipper-card-close {
+  background: transparent !important;
+  border: none !important;
+  color: #94a3b8 !important;
+  font-size: 14px !important;
+  cursor: pointer !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+}
+
+.snipper-card-close:hover {
+  color: #ffffff !important;
+  background-color: #334155 !important;
+}
+
+.snipper-card-body {
+  padding: 12px 14px !important;
+  font-size: 13px !important;
+}
+
+.snipper-loading {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  color: #38bdf8 !important;
+  font-weight: 500 !important;
+}
+
+.snipper-spinner {
+  width: 14px !important;
+  height: 14px !important;
+  border: 2px solid rgba(56, 189, 248, 0.2) !important;
+  border-top-color: #38bdf8 !important;
+  border-radius: 50% !important;
+  animation: snipperSpin 0.7s linear infinite !important;
+}
+
+@keyframes snipperSpin {
+  to { transform: rotate(360deg); }
+}
+
+.snipper-rec-text {
+  font-family: 'Noto Sans Sinhala', sans-serif !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: #f8fafc !important;
+  margin-bottom: 6px !important;
+  word-break: break-word !important;
+}
+
+.snipper-trans-text {
+  font-size: 14px !important;
+  color: #38bdf8 !important;
+  font-weight: 500 !important;
+  word-break: break-word !important;
+  padding: 8px 10px !important;
+  background-color: #1e293b !important;
+  border-radius: 6px !important;
+  border: 1px solid #334155 !important;
+}
+
+.snipper-card-actions {
+  display: flex !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+}
+
+.snipper-btn {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border: none !important;
+  padding: 5px 12px !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.snipper-btn:hover {
+  background-color: #0369a1 !important;
+}
